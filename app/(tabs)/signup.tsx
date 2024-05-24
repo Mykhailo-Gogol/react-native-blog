@@ -3,35 +3,36 @@ import { Alert, Image, StyleSheet } from 'react-native'
 import ParallaxScrollView from '@/components/ParallaxScrollView'
 import { ThemedView } from '@/components/ThemedView'
 import { Button, Input } from '@ui-kitten/components'
-import Spinner from 'react-native-loading-spinner-overlay'
 
 import { useState } from 'react'
-import { supabase } from '../../api/supabase'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { supabase } from '@/api/supabase'
 import { useRouter } from 'expo-router'
+import Spinner from 'react-native-loading-spinner-overlay'
 import { ThemedText } from '@/components/ThemedText'
 
 export default function SignInScreen() {
-  const [email, setEmail] = useState('test@test.com')
-  const [password, setPassword] = useState('qweQWE123!!!')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  async function signInWithEmail() {
+  async function signUpWithEmail() {
     try {
       setLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.signUp({
         email: email,
         password: password,
       })
 
-      await AsyncStorage.setItem('user', JSON.stringify(data.user))
-
-      if (error) Alert.alert(error.message || 'oops')
-
-      if (data) Alert.alert(data.user?.email || 'nice')
-      router.push('/account')
+      if (error) Alert.alert(error.message)
+      if (!session)
+        Alert.alert('Please check your inbox for email verification!')
       setLoading(false)
+
+      router.push('/index')
     } catch (err) {
       console.log(err)
     }
@@ -53,35 +54,26 @@ export default function SignInScreen() {
           type="title"
           style={{ textAlign: 'center', marginBottom: 16 }}
         >
-          Hey there!
+          Welcome!
         </ThemedText>
         <ThemedView>
           <Input
-            autoCapitalize={'none'}
+            autoCapitalize="none"
             placeholder="email"
             value={email}
-            onChangeText={(nextValue) => setEmail(nextValue)}
+            onChangeText={(nextValue: string) => setEmail(nextValue)}
             style={{ marginBottom: 8 }}
           />
           <Input
-            autoCapitalize={'none'}
+            autoCapitalize="none"
             placeholder="password"
             value={password}
-            onChangeText={(nextValue) => setPassword(nextValue)}
+            onChangeText={(nextValue: string) => setPassword(nextValue)}
             style={{ marginBottom: 8 }}
           />
           <Button
-            onPress={signInWithEmail}
+            onPress={signUpWithEmail}
             disabled={loading || !email || !password}
-            style={{ marginBottom: 8 }}
-          >
-            Sign In
-          </Button>
-          <Button
-            status="basic"
-            onPress={() => router.push('/signup')}
-            disabled={loading || !email || !password}
-            style={{ marginBottom: 8 }}
           >
             Sign Up
           </Button>
