@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../api/supabase'
 import { StyleSheet, View, Alert, Image } from 'react-native'
 import { Button, Input } from '@ui-kitten/components'
-import { Session } from '@supabase/supabase-js'
 import ParallaxScrollView from '@/components/ParallaxScrollView'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView'
 import ImagePickerExample from '@/components/ImagePicker'
 import Spinner from 'react-native-loading-spinner-overlay'
 import { ThemedText } from '@/components/ThemedText'
+import { useAuthStore } from '@/utils/zustand'
 
 export default function AccountScreen() {
   const [loading, setLoading] = useState(false)
@@ -16,35 +16,22 @@ export default function AccountScreen() {
   const [username, setUsername] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
 
-  const [session, setSession] = useState<Session | null>(null)
-
+  const { token, user, setToken, setUser } = useAuthStore()
   const router = useRouter()
 
-  useFocusEffect(
-    useCallback(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session)
-      })
-
-      supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session)
-      })
-    }, [])
-  )
-
   useEffect(() => {
-    if (session) getProfile()
-  }, [session])
+    if (token) getProfile()
+  }, [token])
 
   async function getProfile() {
     try {
       setLoading(true)
-      if (!session?.user) throw new Error('No user on the session!')
+      if (!token) throw new Error('No user on the session!')
 
       const { data, error, status } = await supabase
         .from('profiles')
         .select(`full_name, username, avatar_url`)
-        .eq('id', session?.user.id)
+        .eq('id', user?.id)
         .single()
       if (error && status !== 406) {
         throw error
@@ -75,10 +62,10 @@ export default function AccountScreen() {
   }) {
     try {
       setLoading(true)
-      if (!session?.user) throw new Error('No user on the session!')
+      if (!token) throw new Error('No user on the session!')
 
       const updates = {
-        id: session?.user.id,
+        id: user?.id,
         full_name: fullname,
         username,
         avatar_url,
@@ -103,6 +90,8 @@ export default function AccountScreen() {
     setLoading(true)
     try {
       supabase.auth.signOut()
+      setToken(undefined)
+      setUser(null)
       router.push('/(tabs)')
     } catch (err) {
       console.log(err)
@@ -130,25 +119,26 @@ export default function AccountScreen() {
           Account Info
         </ThemedText>
 
-        <ImagePickerExample session={session} />
+        <ImagePickerExample user={user} />
 
         <View style={{ marginBottom: 16 }}>
-          <Input placeholder="email" value={session?.user?.email} disabled />
+          <Input placeholder="email" value={user?.email} disabled />
         </View>
         <View style={{ marginBottom: 16 }}>
           <Input
             placeholder="full name"
             value={fullname || ''}
-            onChangeText={(text) => setUsername(text)}
-            disabled={!session?.user.id}
+            onChangeText={(text) => setFullname(text)}
+            disabled={!token}
           />
         </View>
         <View style={{ marginBottom: 16 }}>
           <Input
+            autoCapitalize="none"
             placeholder="username"
             value={username || ''}
             onChangeText={(text) => setUsername(text)}
-            disabled={!session?.user.id}
+            disabled={!token}
           />
         </View>
 
@@ -157,14 +147,14 @@ export default function AccountScreen() {
             onPress={() =>
               updateProfile({ fullname, username, avatar_url: avatarUrl })
             }
-            disabled={loading || !session?.user.id}
+            disabled={loading || !token}
           >
             {loading ? 'Loading ...' : 'Update'}
           </Button>
         </View>
 
         <View>
-          <Button status="basic" onPress={signOut} disabled={!session?.user.id}>
+          <Button status="basic" onPress={signOut} disabled={!token}>
             Sign Out
           </Button>
         </View>

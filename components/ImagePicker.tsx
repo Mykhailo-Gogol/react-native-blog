@@ -1,26 +1,22 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Image, View, StyleSheet } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { Button } from '@ui-kitten/components'
-import { Session } from '@supabase/supabase-js'
+import { User } from '@supabase/supabase-js'
 import { supabase } from '@/api/supabase'
 import { decode } from 'base64-arraybuffer'
 import * as FileSystem from 'expo-file-system'
 import { useFocusEffect } from 'expo-router'
 
-export default function ImagePickerExample({
-  session,
-}: {
-  session: Session | null
-}) {
+export default function ImagePickerExample({ user }: { user: User | null }) {
   const [image, setImage] = useState<string | null>(null)
 
   const loadImage = async () => {
     try {
-      if (session?.user.id) {
+      if (user?.id) {
         const { data } = await supabase.storage
           .from('avatars')
-          .getPublicUrl(session?.user.id!)
+          .getPublicUrl(user?.id + '.png')
 
         setImage(data?.publicUrl)
         console.log(data)
@@ -51,7 +47,7 @@ export default function ImagePickerExample({
         const base64 = await FileSystem.readAsStringAsync(img.uri, {
           encoding: 'base64',
         })
-        const filePath = `${session?.user!.id}/${new Date().getTime()}.${img.type === 'image' ? 'png' : 'mp4'}`
+        const filePath = `${user!.id}.${img.type === 'image' ? 'png' : 'mp4'}`
         const contentType = img.type === 'image' ? 'image/png' : 'video/mp4'
         await supabase.storage
           .from('avatars')
@@ -77,7 +73,7 @@ export default function ImagePickerExample({
         }
         style={styles.image}
       />
-      <Button onPress={pickImage} disabled={!session}>
+      <Button onPress={pickImage} disabled={!user}>
         Upload
       </Button>
     </View>

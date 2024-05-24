@@ -12,7 +12,7 @@ import 'react-native-reanimated'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { ApplicationProvider } from '@ui-kitten/components'
 import * as eva from '@eva-design/eva'
-import { AuthProvider, useAuth } from '@/components/AuthProvider'
+import { useAuthStore } from '@/utils/zustand'
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync()
@@ -23,38 +23,35 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
 
+  const { token } = useAuthStore()
+
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync()
     }
   }, [loaded])
 
-  const { session, initialized } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!initialized) return
-
     // Check if the path/url is in the (auth) group
 
-    if (session) {
+    if (token) {
       // Redirect authenticated users to the list page
       router.replace('/(tabs)')
-    } else if (!session) {
+    } else if (!token) {
       // Redirect unauthenticated users to the login page
       router.replace('/account')
     }
-  }, [session, initialized])
+  }, [token])
 
   return (
     <ApplicationProvider {...eva} theme={{ ...eva.light }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AuthProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </AuthProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
       </ThemeProvider>
     </ApplicationProvider>
   )

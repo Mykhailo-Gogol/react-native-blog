@@ -7,15 +7,17 @@ import Spinner from 'react-native-loading-spinner-overlay'
 
 import { useState } from 'react'
 import { supabase } from '../../api/supabase'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import { ThemedText } from '@/components/ThemedText'
+import { useAuthStore } from '@/utils/zustand'
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('test@test.com')
   const [password, setPassword] = useState('qweQWE123!!!')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  const { setToken, setUser } = useAuthStore()
 
   async function signInWithEmail() {
     try {
@@ -25,11 +27,11 @@ export default function SignInScreen() {
         password: password,
       })
 
-      await AsyncStorage.setItem('user', JSON.stringify(data.user))
-
       if (error) Alert.alert(error.message || 'oops')
-
       if (data) Alert.alert(data.user?.email || 'nice')
+
+      setToken(data.session?.access_token)
+      setUser(data.user)
       router.push('/account')
       setLoading(false)
     } catch (err) {
